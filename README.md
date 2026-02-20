@@ -1,234 +1,262 @@
-# Home Maintenance AI Agent
+# Home Maintenance Agent
 
-A Next.js application featuring an AI-powered home maintenance assistant with human-in-the-loop (HITL) functionality. This project serves as a starter template for interview candidates to demonstrate AI and software engineering skills.
-
-## Tech Stack
-
-- **Frontend**: Next.js 15 (App Router), React 19, TypeScript
-- **AI**: Vercel AI SDK with OpenAI
-- **Styling**: Tailwind CSS + shadcn/ui components
-- **Validation**: Zod schemas
+An AI-powered home maintenance assistant built with **VoltAgent**, **CopilotKit**, and **Next.js**. This application helps homeowners with maintenance advice, cost estimates, and scheduling professional services with admin approval workflow.
 
 ## Features
 
-### AI Agent Capabilities
-- **Maintenance Tips**: Get practical advice for common home maintenance issues
-- **Cost Estimates**: Receive rough cost estimates for repairs (DIY vs professional)
-- **Schedule Repairs**: Book repair appointments with approval workflow
-- **Request Contractors**: Find and request qualified contractors with approval workflow
+### AI Chat Assistant
+- **Maintenance Tips**: Get practical advice for common home issues (leaky faucets, clogged drains, HVAC, electrical, roofing)
+- **Cost Estimates**: Receive rough cost estimates for DIY vs professional repairs with regional adjustments
+- **Professional Scheduling**: Request professional services (plumbing, electrical, HVAC, general) with admin approval
 
-### Human-in-the-Loop Workflows
-The agent includes workflows that pause for user approval before taking action:
-- **Schedule Repair**: Select date/time, review details, then confirm or cancel
-- **Request Contractor**: Choose from available contractors, then submit request
+### Admin Dashboard
+- View all service requests with filtering by status
+- Approve requests by assigning professionals, date, and time slot
+- Reject requests with notes
+- Real-time status tracking
 
-## Getting Started
+### Real-Time Status Updates
+- Polling-based status alerts in chat
+- Automatic UI updates when admin approves/rejects requests
+- Shows appointment details upon approval
 
-### Prerequisites
-- Node.js 18+
-- npm or yarn
-- OpenAI API key
+## Tech Stack
 
-### Installation
+- **Frontend**: Next.js 15, React 19, Tailwind CSS
+- **AI Framework**: VoltAgent (agent framework), CopilotKit (chat UI)
+- **LLM**: OpenAI GPT-4o
+- **Database**: LibSQL/Turso (SQLite-compatible)
+- **Server**: Hono (via VoltAgent)
 
-1. Clone the repository:
-```bash
-git clone <repository-url>
-cd home-maintenance-agent
+## Architecture
+
 ```
-
-2. Install dependencies:
-```bash
-npm install
+┌─────────────────┐     ┌──────────────────┐     ┌─────────────────┐
+│   Next.js App   │────▶│  VoltAgent API   │────▶│   OpenAI API    │
+│   (Port 3000)   │     │   (Port 3141)    │     │    (GPT-4o)     │
+└─────────────────┘     └──────────────────┘     └─────────────────┘
+        │                        │
+        │                        │
+        ▼                        ▼
+┌─────────────────┐     ┌──────────────────┐
+│  Admin Dashboard│     │   Turso/LibSQL   │
+│   /admin        │     │   (Database)     │
+└─────────────────┘     └──────────────────┘
 ```
-
-3. Create a `.env.local` file with your OpenAI API key:
-```bash
-cp .env.example .env.local
-# Edit .env.local and add your OPENAI_API_KEY
-```
-
-4. Run the development server:
-```bash
-npm run dev
-```
-
-5. Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ## Project Structure
 
 ```
 src/
-├── app/
-│   ├── layout.tsx              # Root layout
-│   ├── page.tsx                # Chat interface page
+├── app/                          # Next.js app router
+│   ├── page.tsx                  # Main chat page
+│   ├── admin/page.tsx            # Admin dashboard
 │   └── api/
-│       ├── chat/route.ts       # Chat endpoint with AI tools
-│       └── workflow/[id]/resume/route.ts  # Workflow resume endpoint
-├── agents/
-│   └── home-maintenance.ts     # Agent definition
-├── tools/
-│   ├── index.ts
-│   ├── get-maintenance-tips.ts # Maintenance advice tool
-│   └── estimate-cost.ts        # Cost estimation tool
-├── workflows/
-│   ├── index.ts
-│   ├── schedule-repair.ts      # HITL repair scheduling
-│   └── request-contractor.ts   # HITL contractor request
+│       ├── requests/[id]/        # User-facing status API
+│       └── admin/requests/       # Admin APIs (list, approve, reject)
 ├── components/
 │   ├── chat/
-│   │   ├── chat-interface.tsx  # Main chat container
-│   │   ├── message-list.tsx    # Message display
-│   │   ├── message-bubble.tsx  # Individual message
-│   │   ├── input-form.tsx      # Message input
-│   │   └── approval-card.tsx   # HITL approval UI
-│   └── ui/                     # shadcn components
-├── hooks/
-│   └── use-chat.ts             # Chat state management
-└── lib/
-    └── utils.ts                # Utility functions
+│   │   ├── copilot-chat.tsx      # CopilotKit chat integration
+│   │   └── request-status-alert.tsx  # Polling status component
+│   └── admin/
+│       ├── admin-dashboard.tsx   # Admin dashboard component
+│       └── service-request-card.tsx  # Request card component
+├── tools/
+│   ├── schedule-professional.ts  # Schedule service tool
+│   ├── estimate-cost.ts          # Cost estimation tool
+│   └── get-maintenance-tips.ts   # Maintenance tips tool
+├── workflows/
+│   └── service-request-workflow.ts  # Workflow definition
+├── lib/
+│   ├── config.ts                 # Environment configuration
+│   ├── professionals.ts          # Professional providers data
+│   ├── memory.ts                 # VoltAgent memory setup
+│   └── db/
+│       └── service-requests.ts   # Database operations
+└── server.ts                     # VoltAgent server entry point
 ```
 
-## Verification
+## Agent Tools
 
-Test the application by following these steps:
+| Tool | Description |
+|------|-------------|
+| `get_maintenance_tips` | Provides practical maintenance tips for common home issues |
+| `estimate_cost` | Calculates DIY vs professional cost estimates with regional adjustments |
+| `schedule_professional` | Creates service requests for admin approval |
+| `check_request_status` | Checks the status of user's service requests |
 
-1. Start the dev server and navigate to http://localhost:3000
-2. Send: "I have a leaky faucet, can you help?"
-   - The agent should respond with maintenance tips
-3. Send: "How much would it cost to fix?"
-   - The agent should provide cost estimates
-4. Send: "Can you schedule a repair for next Monday?"
-   - An approval card should appear with date/time options
-5. Approve or reject the scheduling request
-6. Verify the agent handles both cases correctly
+## Available Professionals
 
----
+| Category | Providers |
+|----------|-----------|
+| Plumbing | QuickFix Plumbing, ProPipe Services |
+| Electrical | SafeWire Electric, Spark Masters |
+| HVAC | CoolAir HVAC, Climate Control Pro |
+| General | HandyPro Services, HomeFixers Plus |
 
-## Interview Tasks
+## Getting Started
 
-Below are suggested tasks for candidates to work on. Choose one or more based on your interests and the role requirements.
+### Prerequisites
 
-### Task 1: Add a New Tool - Seasonal Maintenance Checklist
+- Node.js 18+
+- pnpm (recommended) or npm
+- OpenAI API key
+- Turso database (or local LibSQL)
 
-Create a tool that returns seasonal maintenance tasks based on the current month.
+### Environment Setup
 
-**Requirements:**
-- Define a Zod schema for the tool parameters (optional: season or month input)
-- Categorize tasks by area: HVAC, plumbing, exterior, interior
-- Return tasks appropriate for the current season
-- Include priority levels and estimated time for each task
+Create a `.env.local` file:
 
-**Evaluation Criteria:**
-- Zod schema design
-- Code organization
-- Data structure decisions
-- Integration with existing tools
+```env
+# OpenAI
+OPENAI_API_KEY=sk-...
 
-### Task 2: Enhance the Schedule Repair Workflow
+# Turso Database
+TURSO_DATABASE_URL=libsql://your-db.turso.io
+TURSO_AUTH_TOKEN=your-token
 
-Improve the repair scheduling workflow with additional features.
+# Optional: CopilotKit URL (defaults to localhost:3141)
+NEXT_PUBLIC_COPILOTKIT_URL=http://localhost:3141/copilotkit
+```
 
-**Requirements:**
-- Add time slot selection (morning, afternoon, evening)
-- Implement an emergency repair option that skips approval for critical issues
-- Add the ability to attach photos or notes to the repair request
-- Handle workflow cancellation gracefully with confirmation
+### Installation
 
-**Evaluation Criteria:**
-- Workflow state management
-- User experience considerations
-- Error handling
-- Type safety
+```bash
+# Install dependencies
+pnpm install
 
-### Task 3: Add Conversation Memory
+# Run development servers (Next.js + VoltAgent)
+pnpm dev
+```
 
-Implement persistent memory to remember user's home details across conversations.
+This starts:
+- **Next.js**: http://localhost:3000
+- **VoltAgent API**: http://localhost:3141
+- **Swagger UI**: http://localhost:3141/ui
 
-**Requirements:**
-- Store home information: type (house/apartment), age, square footage
-- Remember previous issues and repairs
-- Use stored context to personalize recommendations
-- Allow users to update their home profile
+### Individual Commands
 
-**Evaluation Criteria:**
-- State persistence strategy
-- Context integration in prompts
-- Privacy considerations
-- API design
+```bash
+# Run only Next.js
+pnpm dev:next
 
-### Task 4: Improve the UI/UX
+# Run only VoltAgent server
+pnpm dev:agent
 
-Enhance the chat interface with better user experience features.
+# Build for production
+pnpm build
 
-**Requirements:**
-- Add typing indicators while the agent is responding
-- Show tool execution status in the chat (e.g., "Getting maintenance tips...")
-- Implement dark mode support
-- Add message timestamps and grouping by date
-- Make suggestion chips functional
+# Start production
+pnpm start
+```
 
-**Evaluation Criteria:**
-- React patterns and hooks usage
-- CSS/Tailwind proficiency
-- Attention to detail
-- Accessibility considerations
+## Usage
 
-### Task 5: Add Error Handling & Edge Cases
+### User Chat Flow
 
-Improve the application's resilience and error handling.
+1. Open http://localhost:3000
+2. Choose a conversation starter or type your question
+3. Ask about maintenance issues, cost estimates, or request a professional
+4. When requesting a professional, provide:
+   - Service type (plumbing, electrical, HVAC, general)
+   - Issue description
+   - Urgency level
+   - Preferred date/time (optional)
+5. Request is submitted and shows pending status
+6. Status alert polls for updates automatically
 
-**Requirements:**
-- Handle API rate limits gracefully with retry logic
-- Add proper error boundaries and fallback UI
-- Implement input validation on the frontend
-- Add loading skeletons for better perceived performance
-- Handle network disconnection scenarios
+### Admin Workflow
 
-**Evaluation Criteria:**
-- Error handling patterns
-- User feedback mechanisms
-- Code quality
-- Testing approach
+1. Open http://localhost:3000/admin
+2. View pending service requests
+3. Click "Approve" to:
+   - Select a professional
+   - Set appointment date and time slot
+   - Add optional notes
+4. Or click "Reject" with a reason
+5. User's chat automatically updates with the decision
 
----
+## API Endpoints
 
-## Candidate Evaluation Criteria
+### User APIs
 
-Candidates will be evaluated on:
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/requests/[id]` | Get request status (for polling) |
 
-1. **Code Quality**
-   - TypeScript usage and type safety
-   - Code organization and modularity
-   - Naming conventions and readability
+### Admin APIs
 
-2. **AI/Agent Patterns**
-   - Understanding of tools and workflows
-   - Prompt engineering considerations
-   - HITL workflow design
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/admin/requests` | List all requests (with filters) |
+| GET | `/api/admin/requests/[id]` | Get single request |
+| POST | `/api/admin/requests/[id]/approve` | Approve request |
+| POST | `/api/admin/requests/[id]/reject` | Reject request |
 
-3. **Frontend Skills**
-   - React patterns and hooks
-   - State management
-   - Component design
+### VoltAgent APIs
 
-4. **Problem Solving**
-   - Approach to breaking down tasks
-   - Handling edge cases
-   - Making trade-off decisions
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/copilotkit` | CopilotKit runtime endpoint |
+| GET | `/health` | Health check |
+| GET | `/ui` | Swagger UI |
 
-5. **Communication**
-   - Code comments where needed
-   - Documentation updates
-   - Explanation of decisions
+## Database Schema
 
-## Resources
+```sql
+CREATE TABLE service_requests (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  user_name TEXT NOT NULL,
+  user_email TEXT NOT NULL,
+  user_phone TEXT NOT NULL,
+  conversation_id TEXT,
+  property_id TEXT NOT NULL,
+  property_address TEXT NOT NULL,
+  service_type TEXT NOT NULL,
+  issue TEXT NOT NULL,
+  urgency TEXT NOT NULL,
+  preferred_date TEXT,
+  preferred_time_slot TEXT,
+  status TEXT NOT NULL DEFAULT 'pending',
+  workflow_run_id TEXT,
+  assigned_professional_id TEXT,
+  assigned_professional_name TEXT,
+  confirmed_date TEXT,
+  confirmed_time_slot TEXT,
+  admin_notes TEXT,
+  processed_by TEXT,
+  processed_at TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+```
 
-- [Vercel AI SDK Documentation](https://sdk.vercel.ai/docs)
-- [Next.js Documentation](https://nextjs.org/docs)
-- [Tailwind CSS Documentation](https://tailwindcss.com/docs)
-- [Zod Documentation](https://zod.dev)
-- [shadcn/ui Components](https://ui.shadcn.com)
+## Request Statuses
+
+| Status | Description |
+|--------|-------------|
+| `pending` | Awaiting admin approval |
+| `approved` | Approved with assigned professional |
+| `rejected` | Rejected by admin |
+| `completed` | Service completed |
+| `cancelled` | Cancelled by user |
+
+## Configuration
+
+The application uses `src/lib/config.ts` for centralized configuration:
+
+```typescript
+export const config = {
+  openai: {
+    apiKey: process.env.OPENAI_API_KEY,
+  },
+  turso: {
+    url: process.env.TURSO_DATABASE_URL,
+    authToken: process.env.TURSO_AUTH_TOKEN,
+  },
+};
+```
 
 ## License
 
